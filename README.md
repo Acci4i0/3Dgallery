@@ -3,7 +3,9 @@
 Studio di ricostruzione 1:1 della digital exhibition **Foam Talent 2024**
 ([foam.org/talent-2024](https://www.foam.org/talent-2024)): una nuvola 3D di
 fotografie navigabile in orbita, con intro tipografica, hover, focus con volo
-di camera e sfondo colorato per opera.
+di camera e sfondo colorato per opera. Le fotografie vengono da `public/img`,
+che è l'unica fonte di verità: cambi i file lì e il progetto si riallinea da
+solo al prossimo dev/build.
 
 ![Screenshot della nuvola 3D](docs/screenshot.png)
 
@@ -26,13 +28,31 @@ npm run build     # build di produzione in dist/
 npm run preview   # serve la build
 ```
 
+## Cambiare le immagini
+
+Aggiungi, sostituisci o elimina file (`.jpg`/`.png`/`.webp`) in `public/img`,
+poi riavvia `npm run dev` o rilancia `npm run build` (se servi `dist/` con un
+server statico la rebuild serve comunque). Prima di ogni dev/build gira
+automaticamente `npm run scan` ([scripts/scan-images.mjs](scripts/scan-images.mjs)),
+che:
+
+- normalizza in-place i file che ne hanno bisogno: orientamento EXIF
+  applicato, resize a larghezza max 2000 px, metadati rimossi (GPS incluso);
+- assegna le immagini ai 20 slot del layout e sceglie le 8 slide dell'intro
+  con uno shuffle deterministico (stabile finché la cartella non cambia);
+  con meno di 20 immagini alcune vengono riusate, con più di 20 ne sceglie 20;
+- genera `src/gallery-images.generated.js` (gitignorato) con dimensioni e
+  URL con cache-busting, così le immagini nuove non restano in cache.
+
 ## Struttura
 
 ```
-gallery-data.js        i 20 frame (immagine, posizione, dimensioni, colori,
-                       isPrimary) + le 8 slide dell'intro (INTRO_SLIDES)
-public/img/            le fotografie (con _selection.json che documenta la
-                       selezione casuale)
+gallery-data.js        il layout: 20 slot (posizione, colori, isPrimary, dati
+                       CMS del riferimento) uniti alle immagini scansionate
+public/img/            le fotografie — unica fonte di verità
+scripts/
+  scan-images.mjs      normalizza le immagini e genera la mappatura
+                       immagini->slot (gira automaticamente pre dev/build)
 src/
   config.js            ogni costante di comportamento, con provenienza
                        ([bundle] / [bundle-default] / [CMS])

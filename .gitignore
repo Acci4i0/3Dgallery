@@ -2,6 +2,9 @@
 node_modules/
 dist/
 
+# generato da scripts/scan-images.mjs prima di ogni dev/build
+src/gallery-images.generated.js
+
 # ambiente / editor / os
 .DS_Store
 *.local
