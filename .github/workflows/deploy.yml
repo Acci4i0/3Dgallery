@@ -1,5 +1,8 @@
 # Builda e pubblica dist/ su GitHub Pages a ogni push su main.
-# Richiede: Settings -> Pages -> Source = "GitHub Actions".
+# configure-pages con enablement:true imposta da solo la Source su
+# "GitHub Actions": se resta "Deploy from a branch", GitHub fa partire anche
+# la pipeline legacy che pubblica i sorgenti raw e, finendo per ultima,
+# sovrascrive la build (pagina bianca / versione vecchia a intermittenza).
 name: Deploy to GitHub Pages
 
 on:
@@ -28,6 +31,8 @@ jobs:
       - run: npm ci
       - run: npm run build
       - uses: actions/configure-pages@v4
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
