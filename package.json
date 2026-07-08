@@ -1,0 +1,33 @@
+{
+  "name": "3dgallery",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Rebuild study of the Foam Talent 2024 digital exhibition: a navigable 3D image cloud built with React Three Fiber and framer-motion-3d",
+  "author": "Andrea (https://github.com/Acci4i0)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Acci4i0/3Dgallery.git"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@react-three/drei": "9.96.1",
+    "@react-three/fiber": "8.15.16",
+    "@use-gesture/react": "10.3.0",
+    "framer-motion": "10.18.0",
+    "framer-motion-3d": "10.18.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "three": "0.160.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.0",
+    "puppeteer-core": "^25.3.0",
+    "vite": "^5.4.0"
+  }
+}

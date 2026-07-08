@@ -1,0 +1,62 @@
+<!doctype html>
+<!-- Rebuild study of the Foam Talent 2024 digital exhibition (foam.org/talent-2024).
+     Original concept and design © Foam. Rebuilt for study purposes with
+     placeholder content: no original assets, images, fonts or code are used. -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Cloud — rebuild study</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: #fff;
+        height: 100%;
+        /* Il riferimento usa font proprietari (Monument Grotesk / PurpleHaze):
+           qui uno stack di sistema equivalente, i font non fanno parte dello scope. */
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      }
+      #root {
+        height: 100%;
+      }
+      canvas {
+        display: block;
+      }
+      button {
+        appearance: none;
+        cursor: pointer;
+        font-family: inherit;
+      }
+
+      /* Lettere del titolo dell'intro: replica dell'animazione CSS del
+         riferimento (2000ms forwards, delay per-lettera inline). L'originale
+         anima font-size 64->130px e gli assi variabili WTUN/WTSP del font
+         proprietario PurpleHaze; senza quel font l'asse WTUN è mappato su
+         font-weight 300->600. Base 44px prima che l'animazione parta, come
+         nel riferimento. */
+      .intro-letter {
+        font-size: 44px;
+        font-weight: 300;
+        line-height: 1;
+        animation: intro-letter-grow 2000ms forwards;
+      }
+      @keyframes intro-letter-grow {
+        0% {
+          font-size: 64px;
+          font-weight: 300;
+        }
+        100% {
+          font-size: 130px;
+          font-weight: 600;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+# dipendenze e build
+node_modules/
+dist/
+
+# ambiente / editor / os
+.DS_Store
+*.local
+*.log
+.vscode/
+.idea/
+
+# materiale di riferimento del sito originale (recording, screenshot,
+# dati CMS estratti): non va pubblicato in nessun caso
+reference/
