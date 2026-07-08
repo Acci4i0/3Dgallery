@@ -125,7 +125,9 @@ const versions = new Map(
     createHash('md5').update(readFileSync(join(IMG_DIR, img.name))).digest('hex').slice(0, 8),
   ]),
 );
-const srcOf = (img) => `/img/${img.name}?v=${versions.get(img.name)}`;
+// Path relativo (niente slash iniziale): risolto rispetto alla pagina, così
+// funziona anche servito da un sottopercorso come GitHub Pages /3Dgallery/.
+const srcOf = (img) => `img/${img.name}?v=${versions.get(img.name)}`;
 const normalizedHeight = (img) => Math.round((img.height * NORMALIZED_WIDTH) / img.width);
 
 const module_ = `// GENERATO da scripts/scan-images.mjs — non modificare a mano.
