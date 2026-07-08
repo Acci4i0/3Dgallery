@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { INTRO_SLIDES } from '../gallery-data.js';
 import { DEBUG_INTRO_SLIDES, HOVER, IMAGE_SCALE_PRIMARY, INTRO } from './config.js';
 import { createDebugSlideTextures } from './debug-slides.js';
+import { extractImageColors } from './extract-image-colors.js';
 import { useFrameInteractions } from './use-frame-interactions.js';
 
 // object-fit: cover sul piano corrente, come lo shader di drei <Image> nel
@@ -51,11 +52,12 @@ export default function PrimaryFrame({
   playIntro,
   isIntroComplete,
   activeItem,
-  isTouch,
+  isMobile,
   onActivate,
   onDeactivate,
   onHoverActiveChange,
   onPortfolioTransition,
+  onImageColors,
   onIntroUnderway,
   onCanAutoRotate,
   onIntroComplete,
@@ -82,11 +84,18 @@ export default function PrimaryFrame({
   const currentTexture = slideTextures[currentSlide];
   applyCoverFit(currentTexture, planeWidth / planeHeight);
 
+  // Colori del focus estratti dall'immagine del primario: l'ultima slide È
+  // la sua immagine (item.src), per costruzione dello scan.
+  useEffect(() => {
+    const lastSlide = rawSlides[rawSlides.length - 1];
+    if (lastSlide?.image) onImageColors(item.id, extractImageColors(lastSlide.image, item.src));
+  }, [rawSlides, item, onImageColors]);
+
   const { group, material, hovered, handlers } = useFrameInteractions({
     item,
     activeItem,
     isIntroComplete,
-    isTouch,
+    isMobile,
     onActivate,
     onDeactivate,
     onHoverActiveChange,

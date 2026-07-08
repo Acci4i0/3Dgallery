@@ -105,10 +105,11 @@ export const PORTFOLIO_TRANSITION = {
   ease: 'linear',
 };
 
-// L'originale distingue mobile con un breakpoint in px (modulo non presente
-// nei chunk archiviati, valore non estraibile — vedi ANALYSIS.md §9); qui si
-// usa pointer:coarse. La registrazione di riferimento è desktop.
-export const TOUCH_MEDIA_QUERY = '(pointer: coarse)';
+// L'originale distingue mobile con un solo breakpoint di larghezza:
+// max-width 768px — estratto dal CSSOM del sito live, dove l'UNICA media
+// query di tutta la pagina è (min-width: 768px) per gli stili desktop
+// [live]. Il gate JS del bundle è (max-width: <breakpoint>px) [bundle].
+export const MOBILE_MEDIA_QUERY = '(max-width: 768px)';
 
 // ---------------------------------------------------------------------------
 // Intro (sequenza verificata sia nel bundle sia sul sito live con hard

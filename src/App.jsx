@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Canvas, useLoader } from '@react-three/fiber';
 import { animate } from 'framer-motion';
 import { useGesture } from '@use-gesture/react';
@@ -9,8 +9,9 @@ import {
   BACKGROUND,
   CAMERA_POSITION,
   INTRO,
-  TOUCH_MEDIA_QUERY,
+  MOBILE_MEDIA_QUERY,
 } from './config.js';
+import { useMediaQuery } from './use-media-query.js';
 import Controls from './Controls.jsx';
 import Frame from './Frame.jsx';
 import PrimaryFrame from './PrimaryFrame.jsx';
@@ -45,10 +46,13 @@ export default function App() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [background, setBackground] = useState(INTRO.initialBackground);
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
+  const [imageColors, setImageColors] = useState({});
   const containerRef = useRef(null);
   const mouseIsDown = useRef(false);
 
-  const isTouch = useMemo(() => window.matchMedia(TOUCH_MEDIA_QUERY).matches, []);
+  // Gate mobile come il riferimento: solo larghezza (max-width 768px),
+  // reattivo al resize/rotazione.
+  const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
 
   // Il cursore custom in focus segue il mouse tracciato sul container
   // (nel riferimento: useGesture onMove sul wrapper della pagina).
@@ -57,12 +61,21 @@ export default function App() {
     { target: containerRef },
   );
 
+  // Colori del frame attivo: estratti dall'immagine quando disponibili
+  // (vedi extract-image-colors.js), CMS come fallback.
+  const activeColors = activeItem
+    ? (imageColors[activeItem.id] ?? {
+        backgroundColor: activeItem.backgroundColor,
+        highlightColor: activeItem.highlightColor,
+      })
+    : null;
+
   // Sfondo: nero durante l'intro, bianco da quando lo slideshow è avviato,
   // colore del frame attivo in focus (sempre 0.2 s linear).
   const backgroundRef = useRef(INTRO.initialBackground);
   useEffect(() => {
-    const target = activeItem
-      ? activeItem.backgroundColor
+    const target = activeColors
+      ? activeColors.backgroundColor
       : isIntroUnderway
         ? BACKGROUND.defaultColor
         : INTRO.initialBackground;
@@ -75,7 +88,7 @@ export default function App() {
         setBackground(v);
       },
     });
-  }, [activeItem, isIntroUnderway]);
+  }, [activeItem, imageColors, isIntroUnderway]);
 
   // Cursore della nuvola: compare a intro completata, come nel riferimento.
   useEffect(() => {
@@ -86,6 +99,9 @@ export default function App() {
   }, [isIntroComplete]);
 
   const handleActivate = useCallback((item) => setActiveItem(item), []);
+  const handleImageColors = useCallback((id, colors) => {
+    setImageColors((prev) => (prev[id] ? prev : { ...prev, [id]: colors }));
+  }, []);
   const handleDeactivate = useCallback(() => {
     setActiveItem(null);
     setHoveringActive(false);
@@ -99,11 +115,12 @@ export default function App() {
   const frameProps = {
     activeItem,
     isIntroComplete,
-    isTouch,
+    isMobile,
     onActivate: handleActivate,
     onDeactivate: handleDeactivate,
     onHoverActiveChange: setHoveringActive,
     onPortfolioTransition: handlePortfolioTransition,
+    onImageColors: handleImageColors,
   };
 
   return (
@@ -127,7 +144,7 @@ export default function App() {
           activeItem={activeItem}
           canAutoRotate={canAutoRotate}
           isIntroComplete={isIntroComplete}
-          isTouch={isTouch}
+          isMobile={isMobile}
         />
         <PortfolioTransition isTransitioning={isTransitioning} />
         <Suspense fallback={null}>
@@ -155,19 +172,21 @@ export default function App() {
         isIntroUnderway={isIntroUnderway}
         onTypographyComplete={handleTypographyComplete}
       />
-      {!isTouch && (
+      {!isMobile && (
         <CursorIcon
           mouseX={mouse.x}
           mouseY={mouse.y}
           activeItem={activeItem}
+          activeColors={activeColors}
           hoveringActive={hoveringActive}
           isTransitioning={isTransitioning}
         />
       )}
       <Detail
         activeItem={activeItem}
+        activeColors={activeColors}
         isTransitioning={isTransitioning}
-        isTouch={isTouch}
+        isMobile={isMobile}
         onPortfolioTransition={handlePortfolioTransition}
       />
     </div>

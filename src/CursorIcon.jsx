@@ -18,7 +18,14 @@ function CloseGlyph() {
  * foto segue il mouse un box 35x35 con la x, sopra la foto la pill 202x40
  * "enter portfolio". Colori dal frame attivo (highlight/background).
  */
-export default function CursorIcon({ mouseX, mouseY, activeItem, hoveringActive, isTransitioning }) {
+export default function CursorIcon({
+  mouseX,
+  mouseY,
+  activeItem,
+  activeColors,
+  hoveringActive,
+  isTransitioning,
+}) {
   const [pressed, setPressed] = useState(false);
 
   useEffect(() => {
@@ -32,8 +39,8 @@ export default function CursorIcon({ mouseX, mouseY, activeItem, hoveringActive,
     };
   }, []);
 
-  const highlight = activeItem ? activeItem.highlightColor : '#000000';
-  const background = activeItem ? activeItem.backgroundColor : '#ffffff';
+  const highlight = activeColors ? activeColors.highlightColor : '#000000';
+  const background = activeColors ? activeColors.backgroundColor : '#ffffff';
 
   // Offset dal puntatore: centro del box (17.5, 17.5) / della pill (101, 20).
   const x = mouseX - (hoveringActive ? CURSOR_ICON.pillWidth / 2 : CURSOR_ICON.closeSize / 2);

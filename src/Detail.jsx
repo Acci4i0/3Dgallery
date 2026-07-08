@@ -8,8 +8,14 @@ import { DETAIL } from './config.js';
  * project" (transizione al portfolio; la navigazione è fuori scope) — la x
  * fissa in alto del riferimento è decorativa (pointer-events: none).
  */
-export default function Detail({ activeItem, isTransitioning, isTouch, onPortfolioTransition }) {
-  const highlight = activeItem ? activeItem.highlightColor : '#000000';
+export default function Detail({
+  activeItem,
+  activeColors,
+  isTransitioning,
+  isMobile,
+  onPortfolioTransition,
+}) {
+  const highlight = activeColors ? activeColors.highlightColor : '#000000';
 
   return (
     <AnimatePresence>
@@ -34,18 +40,28 @@ export default function Detail({ activeItem, isTransitioning, isTouch, onPortfol
               flexDirection: 'column',
               justifyContent: 'center',
               alignItems: 'center',
-              pointerEvents: isTouch ? 'auto' : 'none',
+              pointerEvents: isMobile ? 'auto' : 'none',
               zIndex: 1,
               color: highlight,
             }}
           >
-            <span style={{ fontSize: 16, lineHeight: '20px', fontStyle: 'italic', textAlign: 'center' }}>
+            {/* 16px su mobile, 20px su desktop: misurato sul sito live
+                (font-size/line-height 20px in focus a 1440px) + base 16px
+                del bundle sotto il breakpoint. */}
+            <span
+              style={{
+                fontSize: isMobile ? 16 : 20,
+                lineHeight: '20px',
+                fontStyle: 'italic',
+                textAlign: 'center',
+              }}
+            >
               {activeItem.exhibitionName}
             </span>
-            <span style={{ fontSize: 16, lineHeight: '20px', textAlign: 'center' }}>
+            <span style={{ fontSize: isMobile ? 16 : 20, lineHeight: '20px', textAlign: 'center' }}>
               {activeItem.artistName}
             </span>
-            {isTouch ? (
+            {isMobile ? (
               <button
                 onClick={onPortfolioTransition}
                 style={{
@@ -65,7 +81,7 @@ export default function Detail({ activeItem, isTransitioning, isTouch, onPortfol
               </button>
             ) : null}
           </motion.div>
-          {isTouch ? (
+          {isMobile ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{

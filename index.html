@@ -33,15 +33,32 @@
 
       /* Lettere del titolo dell'intro: replica dell'animazione CSS del
          riferimento (2000ms forwards, delay per-lettera inline). L'originale
-         anima font-size 64->130px e gli assi variabili WTUN/WTSP del font
-         proprietario PurpleHaze; senza quel font l'asse WTUN è mappato su
-         font-weight 300->600. Base 44px prima che l'animazione parta, come
-         nel riferimento. */
+         anima font-size e gli assi variabili WTUN/WTSP del font proprietario
+         PurpleHaze; senza quel font l'asse WTUN è mappato su font-weight
+         300->600. Come nel riferimento il responsive vive su un unico
+         breakpoint: base = mobile (24px, keyframes 34->69px), desktop dietro
+         min-width 768px (44px, keyframes 64->130px) [bundle + live]. */
       .intro-letter {
-        font-size: 44px;
+        font-size: 24px;
         font-weight: 300;
         line-height: 1;
-        animation: intro-letter-grow 2000ms forwards;
+        animation: intro-letter-grow-mobile 2000ms forwards;
+      }
+      @keyframes intro-letter-grow-mobile {
+        0% {
+          font-size: 34px;
+          font-weight: 300;
+        }
+        100% {
+          font-size: 69px;
+          font-weight: 600;
+        }
+      }
+      @media (min-width: 768px) {
+        .intro-letter {
+          font-size: 44px;
+          animation-name: intro-letter-grow;
+        }
       }
       @keyframes intro-letter-grow {
         0% {
