@@ -1,0 +1,62 @@
+import { useEffect, useRef } from 'react';
+import { OrbitControls } from '@react-three/drei';
+import { useThree } from '@react-three/fiber';
+import { ORBIT, FOCUS } from './config.js';
+import { animateVector } from './animate-vector.js';
+import { restPosition } from './rest-position.js';
+
+/**
+ * Navigazione orbitale + volo della camera in focus/unfocus.
+ *
+ * La nuvola non si muove mai: al click la camera vola sul frame (target
+ * compreso), al rilascio torna alla posizione salvata. Rotate/zoom/pan e
+ * auto-rotate sono sospesi finché un frame è attivo.
+ */
+export default function Controls({ activeItem, canAutoRotate, isIntroComplete, isTouch }) {
+  const camera = useThree((s) => s.camera);
+  const controls = useThree((s) => s.controls);
+  const savedCameraPosition = useRef(null);
+
+  useEffect(() => {
+    if (!controls) return;
+
+    if (activeItem) {
+      savedCameraPosition.current = camera.position.clone();
+
+      const rest = restPosition(activeItem);
+      const factor = isTouch ? FOCUS.approachFactorTouch : FOCUS.approachFactor;
+      const dominantDimension =
+        activeItem.height > activeItem.width ? activeItem.height : activeItem.width;
+      const approach = dominantDimension * factor;
+      const azimuth = controls.getAzimuthalAngle();
+      const behind =
+        azimuth > FOCUS.behindAzimuthThreshold || azimuth < -FOCUS.behindAzimuthThreshold;
+
+      animateVector(camera.position, rest, FOCUS.duration, behind ? -approach : approach);
+      animateVector(controls.target, rest, FOCUS.duration);
+    } else if (savedCameraPosition.current) {
+      animateVector(camera.position, savedCameraPosition.current, FOCUS.duration);
+      animateVector(controls.target, FOCUS.releaseTarget, FOCUS.duration);
+    }
+  }, [activeItem, controls, camera, isTouch]);
+
+  // Gate dell'intro come nel riferimento: i controls si abilitano quando
+  // parte l'auto-rotate (avvio dello shrink), rotate/zoom/pan quando l'intro
+  // è completata. Da lì in poi il comportamento è quello preesistente.
+  return (
+    <OrbitControls
+      makeDefault
+      enabled={canAutoRotate}
+      enablePan={isIntroComplete && !activeItem}
+      enableZoom={isIntroComplete && !activeItem}
+      enableRotate={isIntroComplete && !activeItem}
+      zoomSpeed={ORBIT.zoomSpeed}
+      maxDistance={ORBIT.maxDistance}
+      minPolarAngle={ORBIT.minPolarAngle}
+      maxPolarAngle={ORBIT.maxPolarAngle}
+      enableDamping
+      autoRotate={canAutoRotate && !activeItem}
+      autoRotateSpeed={ORBIT.autoRotateSpeed}
+    />
+  );
+}
