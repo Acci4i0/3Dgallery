@@ -11,7 +11,10 @@
   },
   "type": "module",
   "scripts": {
+    "scan": "node scripts/scan-images.mjs",
+    "predev": "npm run scan",
     "dev": "vite",
+    "prebuild": "npm run scan",
     "build": "vite build",
     "preview": "vite preview"
   },
@@ -28,6 +31,7 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.0",
     "puppeteer-core": "^25.3.0",
+    "sharp": "^0.35.3",
     "vite": "^5.4.0"
   }
 }
