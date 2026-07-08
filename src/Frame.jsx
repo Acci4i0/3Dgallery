@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useLoader } from '@react-three/fiber';
 import { motion } from 'framer-motion-3d';
 import * as THREE from 'three';
 import { FOCUS, HOVER, IMAGE_SCALE, INTRO } from './config.js';
+import { extractImageColors } from './extract-image-colors.js';
 import { restPosition } from './rest-position.js';
 import { useFrameInteractions } from './use-frame-interactions.js';
 
@@ -21,17 +22,18 @@ export default function Frame({
   item,
   activeItem,
   isIntroComplete,
-  isTouch,
+  isMobile,
   onActivate,
   onDeactivate,
   onHoverActiveChange,
   onPortfolioTransition,
+  onImageColors,
 }) {
   const { group, material, hovered, handlers } = useFrameInteractions({
     item,
     activeItem,
     isIntroComplete,
-    isTouch,
+    isMobile,
     onActivate,
     onDeactivate,
     onHoverActiveChange,
@@ -44,6 +46,11 @@ export default function Frame({
     rawTexture.needsUpdate = true;
     return rawTexture;
   }, [rawTexture]);
+
+  // Colori del focus estratti dall'immagine (vedi extract-image-colors.js).
+  useEffect(() => {
+    if (texture.image) onImageColors(item.id, extractImageColors(texture.image, item.src));
+  }, [texture, item, onImageColors]);
 
   const rest = restPosition(item);
 

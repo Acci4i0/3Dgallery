@@ -261,6 +261,7 @@ sfondo #EFFDFD), unfocus, fine su nuvola.
 
 | Punto | Stato |
 |---|---|
+| Breakpoint mobile | **Risolto**: 768 px, estratto dal CSSOM del sito live — l'unica media query dell'intera pagina è `(min-width: 768px)` (stili desktop); il gate JS del bundle è `(max-width: <breakpoint>px)` → mobile ≤ 768 px. Verificati live anche: caption in focus 20 px/20 px su desktop (16 px mobile [bundle]), foto in focus mobile al 79.3% della larghezza ⇒ fattore di avvicinamento 0.002 confermato. |
 | `fov` | Non impostato nel bundle → default fiber **75**. Non verificabile al percento sul video perché la registrazione è ritagliata (§1), ma nessun altro valore è presente nel codice. |
 | Versione esatta di drei | Non stampata nel bundle. Le firme (`Image` con `radius`, OrbitControls con `__publicField`) collocano una release 9.9x, coerente con three r160. Non influisce sui parametri, che sono tutti espliciti. |
 | Posizioni per-filtro e slideshow intro | Dati CMS non tutti estratti (fuori scope della registrazione). Estraibili da `__NEXT_DATA__` se servirà la modalità filtri. |

@@ -12,7 +12,7 @@ import { restPosition } from './rest-position.js';
  * compreso), al rilascio torna alla posizione salvata. Rotate/zoom/pan e
  * auto-rotate sono sospesi finché un frame è attivo.
  */
-export default function Controls({ activeItem, canAutoRotate, isIntroComplete, isTouch }) {
+export default function Controls({ activeItem, canAutoRotate, isIntroComplete, isMobile }) {
   const camera = useThree((s) => s.camera);
   const controls = useThree((s) => s.controls);
   const savedCameraPosition = useRef(null);
@@ -24,7 +24,7 @@ export default function Controls({ activeItem, canAutoRotate, isIntroComplete, i
       savedCameraPosition.current = camera.position.clone();
 
       const rest = restPosition(activeItem);
-      const factor = isTouch ? FOCUS.approachFactorTouch : FOCUS.approachFactor;
+      const factor = isMobile ? FOCUS.approachFactorTouch : FOCUS.approachFactor;
       const dominantDimension =
         activeItem.height > activeItem.width ? activeItem.height : activeItem.width;
       const approach = dominantDimension * factor;
@@ -38,7 +38,7 @@ export default function Controls({ activeItem, canAutoRotate, isIntroComplete, i
       animateVector(camera.position, savedCameraPosition.current, FOCUS.duration);
       animateVector(controls.target, FOCUS.releaseTarget, FOCUS.duration);
     }
-  }, [activeItem, controls, camera, isTouch]);
+  }, [activeItem, controls, camera, isMobile]);
 
   // Gate dell'intro come nel riferimento: i controls si abilitano quando
   // parte l'auto-rotate (avvio dello shrink), rotate/zoom/pan quando l'intro

@@ -18,7 +18,7 @@ export function useFrameInteractions({
   item,
   activeItem,
   isIntroComplete,
-  isTouch,
+  isMobile,
   onActivate,
   onDeactivate,
   onHoverActiveChange,
@@ -61,7 +61,7 @@ export function useFrameInteractions({
       document.body.style.cursor = 'none';
       setHovered(false);
       if (activeItem) {
-        if (isActive && !isTouch) onPortfolioTransition();
+        if (isActive && !isMobile) onPortfolioTransition();
       } else {
         onActivate(item);
       }
@@ -75,7 +75,7 @@ export function useFrameInteractions({
       }
     },
     onPointerEnter: () => {
-      if (!isIntroComplete || isTouch || activeItem) return;
+      if (!isIntroComplete || isMobile || activeItem) return;
       setHovered(true);
     },
     onPointerLeave: () => {

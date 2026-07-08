@@ -85,8 +85,17 @@ codebase, non di questa).
 Intro (tipografia, slideshow fullscreen a 250 ms/passo, shrink verso la
 nuvola), auto-rotate, orbita con damping, zoom dolly, hover (scala 1.1), focus
 con volo di camera e sfondo colorato, cursore custom, unfocus, dissolvenza
-verso il portfolio. Fuori scope: modalità filtri e navigazione alle pagine
-artista del sito originale.
+verso il portfolio. Layout mobile sullo stesso singolo breakpoint del
+riferimento (768 px, estratto dal suo CSS): tipografia dell'intro ridotta,
+distanza di focus maggiorata (fattore 0.002), × fissa in alto e bottone
+"view this project" al posto del cursore custom. Fuori scope: modalità filtri
+e navigazione alle pagine artista del sito originale.
+
+Una divergenza dichiarata: in focus il riferimento usa un colore di sfondo
+editoriale per artista (dal CMS); qui, con fotografie personali, il colore
+viene estratto dall'immagine (media dei pixel, highlight per contrasto) —
+l'equivalente automatico della scelta curata a mano
+([src/extract-image-colors.js](src/extract-image-colors.js)).
 
 ## Disclaimer
 
