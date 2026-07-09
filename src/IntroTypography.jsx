@@ -1,8 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { INTRO } from './config.js';
 
-const TITLE = 'ANDRE';
-const SUBTITLE = 'ecco alcune foto prese dalla galleria del telefono';
+const TITLE = 'ANDREA';
+const SUBTITLE = 'Mèfiez-vous des morceaux choisis';
 
 /**
  * Tipografia dell'intro: titolo enorme centrato che cresce lettera per

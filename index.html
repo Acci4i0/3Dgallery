@@ -32,26 +32,33 @@
       }
 
       /* Lettere del titolo dell'intro: replica dell'animazione CSS del
-         riferimento (2000ms forwards, delay per-lettera inline). L'originale
-         anima font-size e gli assi variabili WTUN/WTSP del font proprietario
-         PurpleHaze; senza quel font l'asse WTUN è mappato su font-weight
-         300->600. Come nel riferimento il responsive vive su un unico
-         breakpoint: base = mobile (24px, keyframes 34->69px), desktop dietro
-         min-width 768px (44px, keyframes 64->130px) [bundle + live]. */
+         riferimento (2000ms forwards, delay per-lettera inline; keyframes di
+         font-size 34->69px mobile / 64->130px desktop, unico breakpoint a
+         768px [bundle + live]). Il riferimento usa "Purple Haze" di Font
+         Spectrum (Walthert/Maarleveld), font display op-art COMMERCIALE
+         (Future Fonts) con assi variabili WTUN/WTSP animati: non
+         ridistribuibile qui. Al suo posto Monoton (SIL OFL, self-hostato via
+         Fontsource): stesso carattere op-art a linee concentriche, peso
+         unico 400 (niente animazione di weight: il finto grassetto
+         sintetico rovinerebbe il tratteggio). Con una licenza Purple Haze
+         basta sostituire la font-family qui. */
       .intro-letter {
+        font-family: 'Monoton', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-weight: 400;
         font-size: 24px;
-        font-weight: 300;
         line-height: 1;
         animation: intro-letter-grow-mobile 2000ms forwards;
       }
+      /* Su mobile i corpi del bundle (34->69px) con Monoton sborderebbero:
+         Monoton è più largo di Purple Haze a parità di corpo. Valori scalati
+         (x0.855) per mantenere la proporzione ottica dell'originale, dove
+         TALENT occupa ~85% della larghezza del viewport mobile [live]. */
       @keyframes intro-letter-grow-mobile {
         0% {
-          font-size: 34px;
-          font-weight: 300;
+          font-size: 29px;
         }
         100% {
-          font-size: 69px;
-          font-weight: 600;
+          font-size: 59px;
         }
       }
       @media (min-width: 768px) {
@@ -63,11 +70,9 @@
       @keyframes intro-letter-grow {
         0% {
           font-size: 64px;
-          font-weight: 300;
         }
         100% {
           font-size: 130px;
-          font-weight: 600;
         }
       }
     </style>
