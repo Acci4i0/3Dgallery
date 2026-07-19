@@ -43,9 +43,18 @@ export default function Controls({ activeItem, canAutoRotate, isIntroComplete, i
   // Gate dell'intro come nel riferimento: i controls si abilitano quando
   // parte l'auto-rotate (avvio dello shrink), rotate/zoom/pan quando l'intro
   // è completata. Da lì in poi il comportamento è quello preesistente.
+  //
+  // Il target iniziale dell'orbita è il release-target (0,0,-10), non
+  // (0,0,0): il frame primario riposa esattamente a (0,0,0) e con l'orbita
+  // centrata lì resterebbe inchiodato al centro dello schermo finché un
+  // focus/unfocus non sposta il target (il quirk del release-target del
+  // riferimento). Partendo già dal target post-release la nuvola deriva
+  // subito tutta insieme, primario compreso. La direzione di vista iniziale
+  // non cambia (camera e target restano sull'asse z).
   return (
     <OrbitControls
       makeDefault
+      target={[FOCUS.releaseTarget.x, FOCUS.releaseTarget.y, FOCUS.releaseTarget.z]}
       enabled={canAutoRotate}
       enablePan={isIntroComplete && !activeItem}
       enableZoom={isIntroComplete && !activeItem}
