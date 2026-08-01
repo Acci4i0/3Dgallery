@@ -17,14 +17,20 @@ const cache = new Map();
 const SAMPLE_SIZE = 32;
 const DARK_LUMINANCE_THRESHOLD = 0.45;
 
-export function extractImageColors(image, src) {
+/**
+ * `source` è un HTMLImageElement o un HTMLVideoElement (drawImage accetta
+ * entrambi). Restituisce null se il media non ha ancora pixel da campionare:
+ * il chiamante in quel caso lascia i colori CMS di fallback.
+ */
+export function extractImageColors(source, src) {
   if (cache.has(src)) return cache.get(src);
+  if (!hasPixels(source)) return null;
 
   const canvas = document.createElement('canvas');
   canvas.width = SAMPLE_SIZE;
   canvas.height = SAMPLE_SIZE;
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(image, 0, 0, SAMPLE_SIZE, SAMPLE_SIZE);
+  ctx.drawImage(source, 0, 0, SAMPLE_SIZE, SAMPLE_SIZE);
   const { data } = ctx.getImageData(0, 0, SAMPLE_SIZE, SAMPLE_SIZE);
 
   let r = 0;
@@ -48,4 +54,10 @@ export function extractImageColors(image, src) {
   };
   cache.set(src, colors);
   return colors;
+}
+
+// Un <video> espone videoWidth solo da HAVE_CURRENT_DATA in poi; un'immagine
+// non ancora decodificata ha naturalWidth a 0.
+function hasPixels(source) {
+  return Boolean(source && (source.videoWidth || source.naturalWidth || source.width));
 }

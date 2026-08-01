@@ -88,7 +88,9 @@ export default function PrimaryFrame({
   // la sua immagine (item.src), per costruzione dello scan.
   useEffect(() => {
     const lastSlide = rawSlides[rawSlides.length - 1];
-    if (lastSlide?.image) onImageColors(item.id, extractImageColors(lastSlide.image, item.src));
+    if (!lastSlide?.image) return;
+    const colors = extractImageColors(lastSlide.image, item.src);
+    if (colors) onImageColors(item.id, colors);
   }, [rawSlides, item, onImageColors]);
 
   const { group, material, hovered, handlers } = useFrameInteractions({

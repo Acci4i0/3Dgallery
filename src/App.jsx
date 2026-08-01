@@ -20,10 +20,15 @@ import IntroTypography from './IntroTypography.jsx';
 import CursorIcon from './CursorIcon.jsx';
 import Detail from './Detail.jsx';
 
-// Precarica tutte le texture (nuvola + slide dell'intro) durante la fase
+// Precarica le texture (nuvola + slide dell'intro) durante la fase
 // tipografica, come i <link rel="preload"> del riferimento: quando parte lo
-// slideshow è già tutto in cache e niente sospende.
-useLoader.preload(THREE.TextureLoader, [...GALLERY.map((item) => item.src), ...INTRO_SLIDES]);
+// slideshow è già tutto in cache e niente sospende. I video sono esclusi:
+// TextureLoader carica solo immagini, e il loro streaming lo gestisce
+// l'elemento <video> (vedi use-video-texture.js).
+useLoader.preload(THREE.TextureLoader, [
+  ...GALLERY.filter((item) => item.type !== 'video').map((item) => item.src),
+  ...INTRO_SLIDES,
+]);
 
 /**
  * Pagina della nuvola. Struttura come il riferimento: canvas WebGL trasparente
