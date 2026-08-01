@@ -1,12 +1,15 @@
 // Il layout della nuvola: 20 slot con posizioni (unita' mondo), colori e
 // flag isPrimary — sono i dati CMS reali del riferimento [CMS], vedi
-// ANALYSIS.md §4. Le immagini NON stanno qui: vengono da public/img, unica
-// fonte di verita', mappate sugli slot da scripts/scan-images.mjs (eseguito
+// ANALYSIS.md §4. I media NON stanno qui: vengono da public/img, unica
+// fonte di verita', mappati sugli slot da scripts/scan-images.mjs (eseguito
 // automaticamente prima di dev/build) nel modulo generato
-// src/gallery-images.generated.js. Descrizioni (exhibitionName/artistName)
-// vuote di proposito: la caption in focus non mostra nulla.
+// src/gallery-images.generated.js. Ogni slot porta con se' un `type`
+// ('image' o 'video'): lo slot primario e' sempre un'immagine, perche' e'
+// anche l'ultima slide dell'intro e nell'intro i video non compaiono.
+// Descrizioni (exhibitionName/artistName) vuote di proposito: la caption in
+// focus non mostra nulla.
 
-import { SLOT_IMAGES, INTRO_SLIDES } from './src/gallery-images.generated.js';
+import { SLOT_MEDIA, INTRO_SLIDES } from './src/gallery-images.generated.js';
 
 const LAYOUT = [
   { id:  1, position: { x:   -4.5, y:  0.0, z: -12.0 }, isPrimary: false, backgroundColor: '#ffffff', highlightColor: '#E98822' },
@@ -33,7 +36,7 @@ const LAYOUT = [
 
 export default LAYOUT.map((slot, index) => ({
   ...slot,
-  ...SLOT_IMAGES[index],
+  ...SLOT_MEDIA[index],
   exhibitionName: '',
   artistName: '',
 }));
