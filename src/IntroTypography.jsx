@@ -2,20 +2,17 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { INTRO } from './config.js';
 
 const TITLE = 'ANDREA';
-const SUBTITLE = 'Mèfiez-vous des morceaux choisis';
 
 /**
- * Tipografia dell'intro: titolo enorme centrato che cresce lettera per
+ * Tipografia dell'intro: il titolo enorme centrato che cresce lettera per
  * lettera (animazione CSS `intro-letter-grow` in index.html) dentro un
- * fade-in del contenitore, sottotitolo piccolo sotto che compare carattere
- * per carattere. Al completamento dell'ultimo carattere parte lo slideshow
- * (onTypographyComplete). Quando lo slideshow è avviato (isIntroUnderway) il
- * blocco esce con un fade e non torna più. Il logo in alto del riferimento è
- * eliminato di proposito.
+ * fade-in del contenitore. Al termine dell'animazione dell'ultima lettera
+ * parte lo slideshow (onTypographyComplete). Quando lo slideshow è avviato
+ * (isIntroUnderway) il blocco esce con un fade e non torna più. Il logo in
+ * alto e il sottotitolo del riferimento sono eliminati di proposito.
  */
 export default function IntroTypography({ isIntroUnderway, onTypographyComplete }) {
-  const words = SUBTITLE.split(' ');
-  const { typography, letter, subtitle } = INTRO;
+  const { typography, letter } = INTRO;
 
   return (
     <AnimatePresence>
@@ -44,7 +41,6 @@ export default function IntroTypography({ isIntroUnderway, onTypographyComplete 
             width: 'fit-content',
             top: '50%',
             left: '50%',
-            flexDirection: 'column',
             justifyContent: 'center',
             alignItems: 'center',
             zIndex: 2,
@@ -52,79 +48,26 @@ export default function IntroTypography({ isIntroUnderway, onTypographyComplete 
             color: '#ffffff',
           }}
         >
-          <div
+          <p
             style={{
               display: 'flex',
-              marginBottom: INTRO.titleMarginBottomPx,
-              gap: 8,
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
+              width: '100%',
+              padding: '0 10px',
+              gap: INTRO.titleLetterGapPx,
+              margin: 0,
             }}
           >
-            <p
-              style={{
-                display: 'flex',
-                width: '100%',
-                padding: '0 10px',
-                gap: INTRO.titleLetterGapPx,
-                margin: 0,
-              }}
-            >
-              {TITLE.split('').map((char, index) => (
-                <span
-                  key={`letter-${index}`}
-                  className="intro-letter"
-                  style={{ animationDelay: `${letter.delayBaseMs + index * letter.staggerMs}ms` }}
-                >
-                  {char}
-                </span>
-              ))}
-            </p>
-          </div>
-          <div
-            style={{
-              display: 'flex',
-              width: subtitle.widthPx,
-              flexWrap: 'wrap',
-              gap: subtitle.wordGapPx,
-              justifyContent: 'center',
-            }}
-          >
-            {words.map((word, wordIndex) => {
-              const chars = word.split('');
-              return (
-                <div
-                  key={`word-${wordIndex}`}
-                  style={{ fontSize: subtitle.fontSizePx, textAlign: 'center' }}
-                >
-                  {chars.map((char, charIndex) => (
-                    <motion.span
-                      key={`char-${charIndex}`}
-                      initial={{ opacity: 0 }}
-                      animate={{
-                        opacity: 1,
-                        transition: {
-                          delay:
-                            subtitle.baseDelay +
-                            (subtitle.wordStagger * wordIndex + subtitle.charStagger * charIndex),
-                          duration: subtitle.duration,
-                          ease: 'easeInOut',
-                        },
-                      }}
-                      onAnimationComplete={() => {
-                        if (wordIndex === words.length - 1 && charIndex === chars.length - 1) {
-                          onTypographyComplete();
-                        }
-                      }}
-                    >
-                      {char}
-                    </motion.span>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
+            {TITLE.split('').map((char, index) => (
+              <span
+                key={`letter-${index}`}
+                className="intro-letter"
+                style={{ animationDelay: `${letter.delayBaseMs + index * letter.staggerMs}ms` }}
+                onAnimationEnd={index === TITLE.length - 1 ? onTypographyComplete : undefined}
+              >
+                {char}
+              </span>
+            ))}
+          </p>
         </motion.div>
       )}
     </AnimatePresence>

@@ -60,7 +60,7 @@ src/
   Controls.jsx         OrbitControls + volo della camera in focus/unfocus
   Frame.jsx            frame della nuvola: billboard, hover, dissolvenze
   PrimaryFrame.jsx     frame primario: slideshow fullscreen + shrink dell'intro
-  IntroTypography.jsx  titolo e sottotitolo dell'intro
+  IntroTypography.jsx  titolo dell'intro
   CursorIcon.jsx       cursore custom in focus (x / "enter portfolio")
   Detail.jsx           caption del frame in focus
   debug-slides.js      texture numerate per verificare lo slideshow

@@ -51,7 +51,10 @@ export const HOVER = {
 //   (altezza se portrait, larghezza se landscape); 0.002 su mobile
 // - segno: -r se |azimut| > 2 rad (la camera arriva da dietro la nuvola)
 // - al rilascio la camera torna alla posizione salvata e il target va a
-//   (0,0,-10) — quirk reale del bundle: NON torna al target iniziale (0,0,0)
+//   (0,0,-10) — quirk reale del bundle: NON torna a (0,0,0). Qui l'orbita
+//   PARTE già da questo target (vedi Controls.jsx): a (0,0,0) riposa il
+//   frame primario, che resterebbe altrimenti inchiodato al centro dello
+//   schermo fino al primo focus/unfocus.
 export const FOCUS = {
   duration: 1.2,
   ease: [0.43, 0.19, 0.02, 1],
@@ -121,7 +124,7 @@ export const INTRO = {
   // quando lo slideshow raggiunge il passo 2 [bundle, confermato live].
   initialBackground: '#000000',
 
-  // Contenitore titolo+sottotitolo: fade-in delay 2 s durata 3 s; fade-out
+  // Contenitore del titolo: fade-in delay 2 s durata 3 s; fade-out
   // delay 1.5 s durata 1 s quando parte lo slideshow. Il reveal è un fade,
   // non mask/slide [bundle, confermato live]. Dopo l'intro il titolo NON
   // resta: esce con questo fade [live].
@@ -151,25 +154,14 @@ export const INTRO = {
     toWeight: 600,
   },
 
-  // Sottotitolo: parole in blocchi larghi max 180 px che vanno a capo,
-  // 18 px; ogni carattere fa fade-in con delay 2 + 0.25*parola + 0.05*char,
-  // durata 1 s, ease easeInOut. Il completamento dell'ultimo carattere fa
-  // partire lo slideshow (playIntro) [bundle].
-  subtitle: {
-    baseDelay: 2,
-    wordStagger: 0.25,
-    charStagger: 0.05,
-    duration: 1,
-    widthPx: 180,
-    fontSizePx: 18,
-    wordGapPx: 3,
-  },
+  // Il sottotitolo del riferimento è eliminato di proposito: lo slideshow
+  // (playIntro) parte alla fine dell'animazione CSS dell'ultima lettera del
+  // titolo (~4.2 s: delay 1.2 + 5x0.2 + durata 2), il momento in cui nel
+  // riferimento completava l'ultimo carattere del sottotitolo (~4.05 s).
 
-  // Layout del blocco tipografico [bundle CSS]: titolo e sottotitolo
-  // centrati a metà schermo; gap 6 px tra le lettere, 15 px tra titolo e
-  // sottotitolo.
+  // Layout del titolo [bundle CSS]: centrato a metà schermo, gap 6 px tra
+  // le lettere.
   titleLetterGapPx: 6,
-  titleMarginBottomPx: 15,
 
   // Slideshow del frame primario: piano fullscreen, un passo ogni 250 ms;
   // al passo >1 parte l'uscita della tipografia e lo sfondo va al bianco;
