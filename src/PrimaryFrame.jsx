@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLoader, useThree } from '@react-three/fiber';
 import { motion } from 'framer-motion-3d';
 import { animate } from 'framer-motion';
@@ -25,6 +25,28 @@ function applyCoverFit(texture, planeAspect) {
     texture.repeat.set(1, repeatY);
     texture.offset.set(0, (1 - repeatY) / 2);
   }
+}
+
+/**
+ * Dimensione del piano durante lo slideshow.
+ *
+ * Su desktop il piano riempie il viewport e la foto viene ritagliata per
+ * coprirlo, come nel riferimento. Su mobile no: il viewport e' molto piu'
+ * stretto delle fotografie (390x844 contro 4:3), quindi coprirlo vorrebbe
+ * dire mostrarne circa un terzo. Li' il piano prende invece la proporzione
+ * della foto — riempie la dimensione che tocca per prima e lascia respirare
+ * l'altra — cosi' l'inquadratura resta intera e al cover-fit non resta nulla
+ * da ritagliare.
+ */
+function fitPlaneToViewport(texture, viewport, isMobile) {
+  const image = texture?.image;
+  if (!isMobile || !image?.width) return { width: viewport.width, height: viewport.height };
+
+  const imageAspect = image.width / image.height;
+  const viewportAspect = viewport.width / viewport.height;
+  return imageAspect >= viewportAspect
+    ? { width: viewport.width, height: viewport.width / imageAspect }
+    : { width: viewport.height * imageAspect, height: viewport.height };
 }
 
 /**
@@ -64,8 +86,9 @@ export default function PrimaryFrame({
 }) {
   const viewport = useThree((s) => s.viewport);
   const [step, setStep] = useState(0);
-  const [planeWidth, setPlaneWidth] = useState(viewport.width);
-  const [planeHeight, setPlaneHeight] = useState(viewport.height);
+  // Nulli finche' non parte lo shrink: fino a li' il piano segue la slide.
+  const [shrunkWidth, setShrunkWidth] = useState(null);
+  const [shrunkHeight, setShrunkHeight] = useState(null);
 
   // Le 8 slide dell'intro: cloni delle texture (l'immagine del primario può
   // comparire anche come frame in nuvola, e il cover-fit non deve toccare
@@ -82,6 +105,11 @@ export default function PrimaryFrame({
   }, [rawSlides]);
   const currentSlide = Math.min(step, INTRO.slideshow.slideCount - 1);
   const currentTexture = slideTextures[currentSlide];
+  const fitted = fitPlaneToViewport(currentTexture, viewport, isMobile);
+  const fittedRef = useRef(fitted);
+  fittedRef.current = fitted;
+  const planeWidth = shrunkWidth ?? fitted.width;
+  const planeHeight = shrunkHeight ?? fitted.height;
   applyCoverFit(currentTexture, planeWidth / planeHeight);
 
   // Colori del focus estratti dall'immagine del primario: l'ultima slide È
@@ -113,18 +141,19 @@ export default function PrimaryFrame({
     if (step > INTRO.slideshow.lastStep) {
       const targetWidth = item.width * IMAGE_SCALE_PRIMARY;
       const targetHeight = item.height * IMAGE_SCALE_PRIMARY;
-      animate(viewport.width, targetWidth, {
+      const from = fittedRef.current;
+      animate(from.width, targetWidth, {
         duration: INTRO.slideshow.shrinkDuration,
         delay: INTRO.slideshow.shrinkDelay,
         ease: INTRO.slideshow.shrinkEase,
-        onUpdate: setPlaneWidth,
+        onUpdate: setShrunkWidth,
         onComplete: onIntroComplete,
       });
-      animate(viewport.height, targetHeight, {
+      animate(from.height, targetHeight, {
         duration: INTRO.slideshow.shrinkDuration,
         delay: INTRO.slideshow.shrinkDelay,
         ease: INTRO.slideshow.shrinkEase,
-        onUpdate: setPlaneHeight,
+        onUpdate: setShrunkHeight,
       });
       const autoRotateTimer = setTimeout(onCanAutoRotate, INTRO.slideshow.autoRotateDelayMs);
       return () => clearTimeout(autoRotateTimer);
