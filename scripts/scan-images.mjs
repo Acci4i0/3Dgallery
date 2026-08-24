@@ -62,6 +62,10 @@ const UNSUPPORTED_VIDEO_PATTERN = /\.(webm|avi|mkv|wmv|flv|mpg|mpeg)$/i;
 // libheif rifiuta gli HEIC dell'iPhone (troppi riferimenti interni) e la
 // build gira su ubuntu, dove non c'è sips per convertirli.
 const HEIC_PATTERN = /\.(heic|heif)$/i;
+// Un file di img2 chiamato "primary.<ext>" occupa sempre lo slot primario:
+// è il frame al centro della nuvola ed è anche l'ultima slide dell'intro,
+// quindi è l'unico modo di scegliere con quale immagine si chiude l'apertura.
+const PRIMARY_IMAGE_PATTERN = /^primary\./i;
 // I file finiscono nel repo e li serve GitHub Pages, che non è una CDN.
 const LARGE_VIDEO_WARNING_BYTES = 8 * 1024 * 1024;
 
@@ -119,6 +123,23 @@ if (deck.length < SLOT_COUNT) {
   console.warn(`scan-images: ${deck.length} media in img2 per ${SLOT_COUNT} slot — ${deck.length - SLOT_COUNT} resteranno fuori.`);
 }
 const slotMedia = Array.from({ length: SLOT_COUNT }, (_, i) => deck[i % deck.length]);
+
+const pinned = galleryMedia.find((item) => PRIMARY_IMAGE_PATTERN.test(item.name));
+if (pinned && pinned.type === 'video') {
+  console.error(
+    `scan-images: ${pinned.name} è un video, ma lo slot primario deve essere un'immagine: ` +
+      "è anche l'ultima slide dell'intro.",
+  );
+  process.exit(1);
+}
+if (pinned) {
+  // Scambia, così il media che occupava il primario non sparisce dalla nuvola.
+  const previousIndex = slotMedia.indexOf(pinned);
+  const displaced = slotMedia[PRIMARY_SLOT_INDEX];
+  slotMedia[PRIMARY_SLOT_INDEX] = pinned;
+  if (previousIndex >= 0 && previousIndex !== PRIMARY_SLOT_INDEX) slotMedia[previousIndex] = displaced;
+  console.log(`scan-images: ${pinned.name} fissata allo slot primario e come ultima slide dell'intro.`);
+}
 
 if (slotMedia[PRIMARY_SLOT_INDEX].type === 'video') {
   const swapIndex = slotMedia.findIndex((item) => item.type === 'image');
