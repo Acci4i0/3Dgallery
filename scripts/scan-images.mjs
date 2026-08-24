@@ -1,126 +1,89 @@
 import { createHash } from 'node:crypto';
-import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { readVideoDimensions } from './video-dimensions.mjs';
 
 /**
- * public/img è l'unica fonte di verità dei media: questo script gira
- * automaticamente prima di `npm run dev` e `npm run build` (pre-hook) e
+ * Due cartelle, due ruoli, entrambe fonte di verità:
  *
- * 1. normalizza in-place le immagini che ne hanno bisogno (orientamento EXIF
- *    baked, resize a larghezza max 2000 px, ri-encode JPEG q80 che rimuove
- *    i metadati, GPS incluso) — idempotente: i file già conformi non
- *    vengono toccati. I video non vengono toccati: se ne legge solo la
- *    dimensione dall'header (vedi video-dimensions.mjs);
- * 2. assegna i media ai 20 slot del layout (posizioni CMS del riferimento,
- *    vedi gallery-data.js) con uno shuffle seedato dall'hash della lista
- *    file: stabile finché la cartella non cambia, si rimescola quando
- *    cambia. Con meno di 20 file ricicla ciclicamente, con più di 20 ne
- *    sceglie 20;
- * 3. sceglie le 8 slide dell'intro: SOLO IMMAGINI, mai video. L'ultima è
- *    quella dello slot primario, che per questo motivo è sempre
- *    un'immagine (nel riferimento l'ultima slide resta sul piano che si
- *    restringe e diventa il frame primario in nuvola);
+ *   public/img2  i 20 slot della nuvola: immagini e video, mescolati.
+ *   public/dab   le immagini dell'animazione di apertura.
+ *
+ * Questo script gira automaticamente prima di `npm run dev` e `npm run build`
+ * (pre-hook) e
+ *
+ * 1. normalizza in-place le immagini di entrambe le cartelle (orientamento
+ *    EXIF baked, resize al tetto di MAX_WIDTH, ri-encode JPEG che rimuove i
+ *    metadati, GPS incluso). Un file ricodificato viene anche rinominato in
+ *    .jpg: il MIME che il server deduce dall'estensione deve corrispondere al
+ *    contenuto. I video non vengono toccati: se ne legge solo la dimensione
+ *    dall'header (vedi video-dimensions.mjs);
+ * 2. assegna i media di img2 ai 20 slot del layout (posizioni CMS del
+ *    riferimento, vedi gallery-data.js) con uno shuffle seedato dall'hash
+ *    della lista file: stabile finché la cartella non cambia, si rimescola
+ *    quando cambia. Con meno di 20 file ricicla ciclicamente, con più di 20
+ *    ne sceglie 20;
+ * 3. compone le 8 slide dell'intro: le prime 7 da dab, l'ottava è
+ *    obbligatoriamente il media dello slot primario. Non è una scelta: nel
+ *    riferimento l'ultima slide resta sul piano che si restringe e diventa
+ *    il frame primario in nuvola, quindi deve essere la stessa immagine.
+ *    Per lo stesso motivo lo slot primario non può essere un video, e se lo
+ *    shuffle ce ne mette uno viene scambiato;
  * 4. emette src/gallery-images.generated.js con dimensioni normalizzate a
- *    larghezza 2000 (convenzione del CMS del riferimento: mantiene identica
- *    la scala mondo e la distanza di focus) e query ?v=<hash> di
- *    cache-busting su ogni src.
+ *    larghezza NORMALIZED_WIDTH (convenzione del CMS del riferimento:
+ *    mantiene identica la scala mondo e la distanza di focus) e query
+ *    ?v=<hash> di cache-busting su ogni src.
  */
 
 // fileURLToPath e non .pathname: quest'ultimo lascia le sequenze
 // percent-encoded, e un percorso che contiene uno spazio non verrebbe trovato.
-const IMG_DIR = fileURLToPath(new URL('../public/img/', import.meta.url));
+const GALLERY_DIR = fileURLToPath(new URL('../public/img2/', import.meta.url));
+const INTRO_DIR = fileURLToPath(new URL('../public/dab/', import.meta.url));
 const OUT_FILE = fileURLToPath(new URL('../src/gallery-images.generated.js', import.meta.url));
-const MAX_WIDTH = 2000;
+const GALLERY_URL_BASE = 'img2';
+const INTRO_URL_BASE = 'dab';
+
+// Tetto della texture. Non tocca il layout: la scala mondo resta ancorata a
+// NORMALIZED_WIDTH, questo è solo quanti pixel veri contiene il file. Il
+// limite utile è quanto grande viene disegnato un frame a fuoco (~1400 px
+// device su uno schermo Retina 1440x900, ~2250 px su un 5K): oltre non si
+// vede nulla in più e la memoria della GPU cresce col quadrato.
+const MAX_WIDTH = 2600;
 const NORMALIZED_WIDTH = 2000;
 const SLOT_COUNT = 20;
 const PRIMARY_SLOT_INDEX = 12;
 const INTRO_SLIDE_COUNT = 8;
-const JPEG_QUALITY = 80;
+const JPEG_QUALITY = 90;
 const IMAGE_PATTERN = /\.(jpe?g|png|webp)$/i;
 const VIDEO_PATTERN = /\.(mp4|m4v|mov)$/i;
 const UNSUPPORTED_VIDEO_PATTERN = /\.(webm|avi|mkv|wmv|flv|mpg|mpeg)$/i;
+// libheif rifiuta gli HEIC dell'iPhone (troppi riferimenti interni) e la
+// build gira su ubuntu, dove non c'è sips per convertirli.
+const HEIC_PATTERN = /\.(heic|heif)$/i;
 // I file finiscono nel repo e li serve GitHub Pages, che non è una CDN.
 const LARGE_VIDEO_WARNING_BYTES = 8 * 1024 * 1024;
 
-const entries = readdirSync(IMG_DIR);
+const galleryMedia = await collectMedia(GALLERY_DIR, 'public/img2', { allowVideo: true });
+const introImages = await collectMedia(INTRO_DIR, 'public/dab', { allowVideo: false });
 
-const unsupported = entries.filter((name) => UNSUPPORTED_VIDEO_PATTERN.test(name));
-if (unsupported.length > 0) {
+const galleryImages = galleryMedia.filter((item) => item.type === 'image');
+const galleryVideos = galleryMedia.filter((item) => item.type === 'video');
+
+if (galleryImages.length === 0) {
   console.error(
-    `scan-images: formato video non supportato: ${unsupported.join(', ')}. ` +
-      "Converti in MP4 (H.264): è l'unico che tutti i browser riproducono.",
+    'scan-images: public/img2 non può contenere solo video — lo slot primario deve essere ' +
+      "un'immagine, perché è anche l'ultima slide dell'intro.",
   );
   process.exit(1);
 }
-
-const files = entries
-  .filter((name) => IMAGE_PATTERN.test(name) || VIDEO_PATTERN.test(name))
-  .sort();
-
-if (files.length === 0) {
-  console.error('scan-images: nessun media in public/img — aggiungi dei file e rilancia.');
+if (introImages.length === 0) {
+  console.error('scan-images: public/dab è vuota — servono le immagini dell\'animazione di apertura.');
   process.exit(1);
 }
 
-// --- 1. dimensioni + normalizzazione in-place delle sole immagini ------------
-
-const media = [];
-for (const name of files) {
-  const path = join(IMG_DIR, name);
-
-  if (VIDEO_PATTERN.test(name)) {
-    const { width, height, rotated } = await readVideoDimensions(path);
-    const bytes = statSync(path).size;
-    if (bytes > LARGE_VIDEO_WARNING_BYTES) {
-      console.warn(
-        `scan-images: ${name} pesa ${(bytes / 1024 / 1024).toFixed(1)} MB — ` +
-          'valuta di accorciarlo o ricomprimerlo, finisce nel repo.',
-      );
-    }
-    console.log(`scan-images: video ${name} -> ${width}x${height}${rotated ? ' (ruotato 90°)' : ''}`);
-    media.push({ name, width, height, type: 'video' });
-    continue;
-  }
-
-  const meta = await sharp(path).metadata();
-  const needsRotation = meta.orientation !== undefined && meta.orientation !== 1;
-  const needsResize = meta.width > MAX_WIDTH;
-  const hasMetadata = meta.exif !== undefined || meta.icc !== undefined || meta.xmp !== undefined;
-
-  let { width, height } = meta;
-  if (needsRotation || needsResize || hasMetadata) {
-    // .rotate() senza argomenti applica l'orientamento EXIF; l'output di
-    // sharp non copia i metadati (niente EXIF/GPS) se non richiesto.
-    let pipeline = sharp(path).rotate();
-    if (needsRotation && meta.orientation >= 5) [width, height] = [height, width];
-    if (width > MAX_WIDTH) {
-      height = Math.round((height * MAX_WIDTH) / width);
-      width = MAX_WIDTH;
-      pipeline = pipeline.resize({ width: MAX_WIDTH });
-    }
-    const buffer = await pipeline.jpeg({ quality: JPEG_QUALITY }).toBuffer();
-    writeFileSync(path, buffer);
-    console.log(`scan-images: normalizzata ${name} -> ${width}x${height}`);
-  }
-
-  media.push({ name, width, height, type: 'image' });
-}
-
-const images = media.filter((item) => item.type === 'image');
-const videos = media.filter((item) => item.type === 'video');
-
-if (images.length === 0) {
-  console.error(
-    "scan-images: servono immagini, non solo video — le 8 slide dell'intro e lo slot " +
-      'primario devono essere immagini. Aggiungi almeno un file jpg/png/webp.',
-  );
-  process.exit(1);
-}
-
-// --- 2. shuffle seedato dalla lista file -------------------------------------
+// --- assegnazione agli slot ---------------------------------------------------
 
 // mulberry32: PRNG deterministico; il seed viene dall'hash dei nomi file,
 // così la mappatura è stabile a cartella invariata.
@@ -135,7 +98,9 @@ function mulberry32(seed) {
   };
 }
 
-const listHash = createHash('md5').update(files.join('\n')).digest();
+const listHash = createHash('md5')
+  .update([...galleryMedia, ...introImages].map((item) => item.name).join('\n'))
+  .digest();
 const random = mulberry32(listHash.readUInt32LE(0));
 
 function shuffled(array) {
@@ -147,15 +112,14 @@ function shuffled(array) {
   return copy;
 }
 
-const deck = shuffled(media);
+const deck = shuffled(galleryMedia);
 if (deck.length < SLOT_COUNT) {
   console.warn(`scan-images: ${deck.length} media per ${SLOT_COUNT} slot — alcuni verranno riusati.`);
+} else if (deck.length > SLOT_COUNT) {
+  console.warn(`scan-images: ${deck.length} media in img2 per ${SLOT_COUNT} slot — ${deck.length - SLOT_COUNT} resteranno fuori.`);
 }
 const slotMedia = Array.from({ length: SLOT_COUNT }, (_, i) => deck[i % deck.length]);
 
-// Lo slot primario è protagonista dell'intro e ne è l'ultima slide: deve
-// essere un'immagine. Se lo shuffle ci ha messo un video, scambialo col
-// primo slot che ospita un'immagine.
 if (slotMedia[PRIMARY_SLOT_INDEX].type === 'video') {
   const swapIndex = slotMedia.findIndex((item) => item.type === 'image');
   [slotMedia[PRIMARY_SLOT_INDEX], slotMedia[swapIndex]] = [
@@ -167,53 +131,169 @@ if (slotMedia[PRIMARY_SLOT_INDEX].type === 'video') {
   );
 }
 
-// --- 3. slide dell'intro: solo immagini ---------------------------------------
+// --- slide dell'intro: 7 da dab, l'ottava è il primario -----------------------
 
-const primaryImage = slotMedia[PRIMARY_SLOT_INDEX];
-const otherImages = shuffled(images.filter((img) => img.name !== primaryImage.name));
-const introPool = otherImages.length > 0 ? otherImages : [primaryImage];
-const introSlides = [];
-for (let i = 0; introSlides.length < INTRO_SLIDE_COUNT - 1; i++) {
-  introSlides.push(introPool[i % introPool.length]);
+const primaryMedia = slotMedia[PRIMARY_SLOT_INDEX];
+const introPool = shuffled(introImages);
+const wantedFromIntroDir = INTRO_SLIDE_COUNT - 1;
+if (introPool.length < wantedFromIntroDir) {
+  console.warn(
+    `scan-images: public/dab ha ${introPool.length} immagini per ${wantedFromIntroDir} slide ` +
+      `— ${wantedFromIntroDir - introPool.length} verranno ripetute. Aggiungine altre per averle tutte diverse.`,
+  );
 }
-introSlides.push(primaryImage);
-
-// --- 4. emissione del modulo generato ----------------------------------------
-
-const versions = new Map(
-  media.map((item) => [
-    item.name,
-    createHash('md5').update(readFileSync(join(IMG_DIR, item.name))).digest('hex').slice(0, 8),
-  ]),
+const introSlides = Array.from(
+  { length: wantedFromIntroDir },
+  (_, i) => ({ item: introPool[i % introPool.length], base: INTRO_URL_BASE }),
 );
-// Path relativo (niente slash iniziale): risolto rispetto alla pagina, così
-// funziona anche servito da un sottopercorso come GitHub Pages /3Dgallery/.
-const srcOf = (item) => `img/${item.name}?v=${versions.get(item.name)}`;
+introSlides.push({ item: primaryMedia, base: GALLERY_URL_BASE });
+
+// --- emissione del modulo generato -------------------------------------------
+
+const srcOf = ({ item, base }) => `${base}/${item.name}?v=${item.version}`;
 const normalizedHeight = (item) => Math.round((item.height * NORMALIZED_WIDTH) / item.width);
 
 const module_ = `// GENERATO da scripts/scan-images.mjs — non modificare a mano.
-// Rigenerato automaticamente prima di ogni dev/build dal contenuto di
-// public/img. Dimensioni normalizzate a larghezza ${NORMALIZED_WIDTH} (convenzione del
-// riferimento); ?v= è cache-busting sul contenuto del file.
+// Rigenerato automaticamente prima di ogni dev/build da public/img2 (nuvola)
+// e public/dab (intro). Dimensioni normalizzate a larghezza ${NORMALIZED_WIDTH}
+// (convenzione del riferimento); ?v= è cache-busting sul contenuto del file.
 // INTRO_SLIDES contiene solo immagini: nell'intro non compaiono mai video.
+// L'ultima slide è il media dello slot primario, che infatti resta sul piano
+// quando si restringe e diventa il frame in nuvola.
 
 export const SLOT_MEDIA = [
 ${slotMedia
   .map(
     (item) =>
-      `  { src: '${srcOf(item)}', type: '${item.type}', width: ${NORMALIZED_WIDTH}, height: ${normalizedHeight(item)} },`,
+      `  { src: '${srcOf({ item, base: GALLERY_URL_BASE })}', type: '${item.type}', width: ${NORMALIZED_WIDTH}, height: ${normalizedHeight(item)} },`,
   )
   .join('\n')}
 ];
 
 export const INTRO_SLIDES = [
-${introSlides.map((img) => `  '${srcOf(img)}',`).join('\n')}
+${introSlides.map((slide) => `  '${srcOf(slide)}',`).join('\n')}
 ];
 `;
 
 writeFileSync(OUT_FILE, module_);
 console.log(
-  `scan-images: ${images.length} immagini + ${videos.length} video -> ${SLOT_COUNT} slot ` +
-    `(${slotMedia.filter((item) => item.type === 'video').length} video in nuvola) ` +
-    `+ ${INTRO_SLIDE_COUNT} slide intro senza video (src/gallery-images.generated.js)`,
+  `scan-images: img2 ${galleryImages.length} immagini + ${galleryVideos.length} video -> ${SLOT_COUNT} slot ` +
+    `(${slotMedia.filter((item) => item.type === 'video').length} video in nuvola); ` +
+    `dab ${introImages.length} immagini -> ${wantedFromIntroDir} slide + 1 dal primario`,
 );
+
+// --- lettura e normalizzazione ------------------------------------------------
+
+async function collectMedia(dir, label, { allowVideo }) {
+  if (!existsSync(dir)) {
+    console.error(`scan-images: manca la cartella ${label}.`);
+    process.exit(1);
+  }
+  const entries = readdirSync(dir);
+
+  const heic = entries.filter((name) => HEIC_PATTERN.test(name));
+  if (heic.length > 0) {
+    console.error(
+      `scan-images: ${label} contiene HEIC che la build non sa leggere: ${heic.join(', ')}. ` +
+        'Convertili in JPEG, per esempio: sips -s format jpeg -s formatOptions best <file> --out <file>.jpg',
+    );
+    process.exit(1);
+  }
+
+  const unsupportedVideo = entries.filter((name) => UNSUPPORTED_VIDEO_PATTERN.test(name));
+  if (unsupportedVideo.length > 0) {
+    console.error(
+      `scan-images: ${label} contiene video in un formato non supportato: ${unsupportedVideo.join(', ')}. ` +
+        "Converti in MP4 (H.264): è l'unico che tutti i browser riproducono.",
+    );
+    process.exit(1);
+  }
+
+  const videos = entries.filter((name) => VIDEO_PATTERN.test(name));
+  if (!allowVideo && videos.length > 0) {
+    console.error(
+      `scan-images: ${label} può contenere solo immagini, ma c'è ${videos.join(', ')}. ` +
+        "Nell'animazione di apertura i video non compaiono.",
+    );
+    process.exit(1);
+  }
+
+  const names = entries
+    .filter((name) => IMAGE_PATTERN.test(name) || (allowVideo && VIDEO_PATTERN.test(name)))
+    .sort();
+
+  if (names.length === 0) {
+    console.error(`scan-images: nessun media utilizzabile in ${label}.`);
+    process.exit(1);
+  }
+
+  const media = [];
+  for (const name of names) {
+    media.push(
+      VIDEO_PATTERN.test(name) ? await describeVideo(dir, name) : await normaliseImage(dir, name),
+    );
+  }
+  return media;
+}
+
+async function describeVideo(dir, name) {
+  const path = join(dir, name);
+  const bytes = statSync(path).size;
+  if (bytes > LARGE_VIDEO_WARNING_BYTES) {
+    console.warn(
+      `scan-images: ${name} pesa ${(bytes / 1024 / 1024).toFixed(1)} MB — ` +
+        'valuta di ricomprimerlo, finisce nel repo e lo scarica ogni visitatore.',
+    );
+  }
+  const { width, height, rotated } = await readVideoDimensions(path);
+  console.log(`scan-images: video ${name} -> ${width}x${height}${rotated ? ' (ruotato 90°)' : ''}`);
+  return { name, width, height, type: 'video', version: hashOf(path) };
+}
+
+async function normaliseImage(dir, name) {
+  const path = join(dir, name);
+  const meta = await sharp(path).metadata();
+  const needsRotation = meta.orientation !== undefined && meta.orientation !== 1;
+  const needsResize = meta.width > MAX_WIDTH;
+  const hasMetadata = meta.exif !== undefined || meta.icc !== undefined || meta.xmp !== undefined;
+  // Il contenuto in uscita è sempre JPEG: se il nome dice altro, il server
+  // annuncerebbe un MIME che non corrisponde e il browser rifiuterebbe il file.
+  const needsJpegName = !/\.jpe?g$/i.test(name);
+
+  let { width, height } = meta;
+  if (!needsRotation && !needsResize && !hasMetadata && !needsJpegName) {
+    return { name, width, height, type: 'image', version: hashOf(path) };
+  }
+
+  // .rotate() senza argomenti applica l'orientamento EXIF; l'output di sharp
+  // non copia i metadati (niente EXIF/GPS) se non richiesto.
+  let pipeline = sharp(path).rotate();
+  if (needsRotation && meta.orientation >= 5) [width, height] = [height, width];
+  if (width > MAX_WIDTH) {
+    height = Math.round((height * MAX_WIDTH) / width);
+    width = MAX_WIDTH;
+    pipeline = pipeline.resize({ width: MAX_WIDTH });
+  }
+  const buffer = await pipeline.jpeg({ quality: JPEG_QUALITY }).toBuffer();
+
+  const finalName = freeJpegName(dir, name);
+  writeFileSync(join(dir, finalName), buffer);
+  if (finalName !== name) unlinkSync(path);
+  console.log(
+    `scan-images: normalizzata ${name}${finalName === name ? '' : ` -> ${finalName}`} ${width}x${height}`,
+  );
+
+  return { name: finalName, width, height, type: 'image', version: hashOf(join(dir, finalName)) };
+}
+
+function freeJpegName(dir, name) {
+  if (/\.jpe?g$/i.test(name)) return name;
+  const base = name.replace(/\.[^.]+$/, '');
+  let candidate = `${base}.jpg`;
+  for (let n = 2; existsSync(join(dir, candidate)); n += 1) candidate = `${base}-${n}.jpg`;
+  return candidate;
+}
+
+function hashOf(path) {
+  return createHash('md5').update(readFileSync(path)).digest('hex').slice(0, 8);
+}

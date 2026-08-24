@@ -16,3 +16,9 @@ src/gallery-images.generated.js
 # materiale di riferimento del sito originale (recording, screenshot,
 # dati CMS estratti): non va pubblicato in nessun caso
 reference/
+
+# originali a piena risoluzione delle foto: lo scan riscrive public/img sul posto
+_originals/
+
+# vecchia cartella dei media: fuori da public/ per non finire nel deploy
+_unused/
