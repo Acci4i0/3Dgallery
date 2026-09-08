@@ -26,7 +26,9 @@ import { readVideoDimensions } from './video-dimensions.mjs';
  *    quando cambia. Con meno di 20 file ricicla ciclicamente, con più di 20
  *    ne sceglie 20;
  * 3. compone le 8 slide dell'intro: le prime 7 da dab, l'ottava è
- *    obbligatoriamente il media dello slot primario. Non è una scelta: nel
+ *    obbligatoriamente il media dello slot primario. Un file di dab chiamato
+ *    "first.<ext>" apre l'animazione: è il gemello di "primary." e serve a
+ *    scegliere con quale immagine si comincia, non solo con quale si finisce. Non è una scelta: nel
  *    riferimento l'ultima slide resta sul piano che si restringe e diventa
  *    il frame primario in nuvola, quindi deve essere la stessa immagine.
  *    Per lo stesso motivo lo slot primario non può essere un video, e se lo
@@ -66,6 +68,9 @@ const HEIC_PATTERN = /\.(heic|heif)$/i;
 // è il frame al centro della nuvola ed è anche l'ultima slide dell'intro,
 // quindi è l'unico modo di scegliere con quale immagine si chiude l'apertura.
 const PRIMARY_IMAGE_PATTERN = /^primary\./i;
+// Simmetrico: un file di dab chiamato "first.<ext>" è la prima slide
+// dell'intro. Senza, le 7 slide da dab restano nell'ordine mescolato.
+const INTRO_FIRST_IMAGE_PATTERN = /^first\./i;
 // I file finiscono nel repo e li serve GitHub Pages, che non è una CDN.
 const LARGE_VIDEO_WARNING_BYTES = 8 * 1024 * 1024;
 
@@ -163,10 +168,21 @@ if (introPool.length < wantedFromIntroDir) {
       `— ${wantedFromIntroDir - introPool.length} verranno ripetute. Aggiungine altre per averle tutte diverse.`,
   );
 }
-const introSlides = Array.from(
-  { length: wantedFromIntroDir },
-  (_, i) => ({ item: introPool[i % introPool.length], base: INTRO_URL_BASE }),
-);
+// Se c'è una "first.", va in testa. Le altre slide ciclano sul resto del
+// mazzo e non su tutto: quando dab ha meno immagini degli slot, a ripetersi
+// non deve essere proprio quella di apertura.
+const pinnedFirst = introPool.find((item) => INTRO_FIRST_IMAGE_PATTERN.test(item.name));
+const rotation = pinnedFirst ? introPool.filter((item) => item !== pinnedFirst) : introPool;
+if (pinnedFirst) {
+  console.log(`scan-images: ${pinnedFirst.name} fissata come prima slide dell'intro.`);
+}
+
+const introSlides = Array.from({ length: wantedFromIntroDir }, (_, i) => {
+  if (pinnedFirst && i === 0) return { item: pinnedFirst, base: INTRO_URL_BASE };
+  const pool = pinnedFirst ? rotation : introPool;
+  const index = pinnedFirst ? i - 1 : i;
+  return { item: pool[index % pool.length], base: INTRO_URL_BASE };
+});
 introSlides.push({ item: primaryMedia, base: GALLERY_URL_BASE });
 
 // --- emissione del modulo generato -------------------------------------------

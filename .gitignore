@@ -21,3 +21,11 @@ _originals/
 
 # vecchia cartella dei media: fuori da public/ per non finire nel deploy
 _unused/
+
+# Di public/ vengono pubblicate SOLO img2/ e dab/. Tutto il resto della
+# cartella finisce comunque in dist/ (vite ci copia dentro public/ per intero),
+# quindi scarti e file parcheggiati qui andrebbero online: al momento sarebbero
+# ~27 MB, HEIC compresi, che nessun browser sa mostrare.
+public/*
+!public/img2/
+!public/dab/
