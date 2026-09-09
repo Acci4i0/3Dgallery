@@ -53,6 +53,13 @@ const INTRO_URL_BASE = 'dab';
 // device su uno schermo Retina 1440x900, ~2250 px su un 5K): oltre non si
 // vede nulla in più e la memoria della GPU cresce col quadrato.
 const MAX_WIDTH = 2600;
+// Le immagini di dab sono lampi da 250 ms a schermo intero e non restano mai:
+// quella che resta sul piano che si restringe arriva da img2, non da qui.
+// Quindi si limita il LATO LUNGO, non la larghezza: una verticale 2600x3467 e'
+// 9 MP, cioe' 34 MB di memoria GPU, e a schermo intero su un viewport
+// orizzontale se ne vede meno della meta' — il resto sono pixel caricati e mai
+// mostrati. A 2000 di lato lungo la stessa foto scende a 3 MP / 12 MB.
+const INTRO_MAX_LONG_SIDE = 2000;
 const NORMALIZED_WIDTH = 2000;
 const SLOT_COUNT = 20;
 const PRIMARY_SLOT_INDEX = 12;
@@ -74,8 +81,14 @@ const INTRO_FIRST_IMAGE_PATTERN = /^first\./i;
 // I file finiscono nel repo e li serve GitHub Pages, che non è una CDN.
 const LARGE_VIDEO_WARNING_BYTES = 8 * 1024 * 1024;
 
-const galleryMedia = await collectMedia(GALLERY_DIR, 'public/img2', { allowVideo: true });
-const introImages = await collectMedia(INTRO_DIR, 'public/dab', { allowVideo: false });
+const galleryMedia = await collectMedia(GALLERY_DIR, 'public/img2', {
+  allowVideo: true,
+  cap: { mode: 'width', px: MAX_WIDTH },
+});
+const introImages = await collectMedia(INTRO_DIR, 'public/dab', {
+  allowVideo: false,
+  cap: { mode: 'longSide', px: INTRO_MAX_LONG_SIDE },
+});
 
 const galleryImages = galleryMedia.filter((item) => item.type === 'image');
 const galleryVideos = galleryMedia.filter((item) => item.type === 'video');
@@ -221,7 +234,7 @@ console.log(
 
 // --- lettura e normalizzazione ------------------------------------------------
 
-async function collectMedia(dir, label, { allowVideo }) {
+async function collectMedia(dir, label, { allowVideo, cap }) {
   if (!existsSync(dir)) {
     console.error(`scan-images: manca la cartella ${label}.`);
     process.exit(1);
@@ -267,7 +280,7 @@ async function collectMedia(dir, label, { allowVideo }) {
   const media = [];
   for (const name of names) {
     media.push(
-      VIDEO_PATTERN.test(name) ? await describeVideo(dir, name) : await normaliseImage(dir, name),
+      VIDEO_PATTERN.test(name) ? await describeVideo(dir, name) : await normaliseImage(dir, name, cap),
     );
   }
   return media;
@@ -287,11 +300,17 @@ async function describeVideo(dir, name) {
   return { name, width, height, type: 'video', version: hashOf(path) };
 }
 
-async function normaliseImage(dir, name) {
+async function normaliseImage(dir, name, cap) {
   const path = join(dir, name);
   const meta = await sharp(path).metadata();
   const needsRotation = meta.orientation !== undefined && meta.orientation !== 1;
-  const needsResize = meta.width > MAX_WIDTH;
+  // Dopo la rotazione EXIF i lati possono scambiarsi: il limite va valutato
+  // sulle dimensioni finali, non su quelle scritte nel file.
+  const upright = needsRotation && meta.orientation >= 5
+    ? { width: meta.height, height: meta.width }
+    : { width: meta.width, height: meta.height };
+  const capped = cappedSize(upright, cap);
+  const needsResize = capped.width !== upright.width;
   const hasMetadata = meta.exif !== undefined || meta.icc !== undefined || meta.xmp !== undefined;
   // Il contenuto in uscita è sempre JPEG: se il nome dice altro, il server
   // annuncerebbe un MIME che non corrisponde e il browser rifiuterebbe il file.
@@ -305,12 +324,9 @@ async function normaliseImage(dir, name) {
   // .rotate() senza argomenti applica l'orientamento EXIF; l'output di sharp
   // non copia i metadati (niente EXIF/GPS) se non richiesto.
   let pipeline = sharp(path).rotate();
-  if (needsRotation && meta.orientation >= 5) [width, height] = [height, width];
-  if (width > MAX_WIDTH) {
-    height = Math.round((height * MAX_WIDTH) / width);
-    width = MAX_WIDTH;
-    pipeline = pipeline.resize({ width: MAX_WIDTH });
-  }
+  width = capped.width;
+  height = capped.height;
+  if (needsResize) pipeline = pipeline.resize({ width });
   const buffer = await pipeline.jpeg({ quality: JPEG_QUALITY }).toBuffer();
 
   const finalName = freeJpegName(dir, name);
@@ -321,6 +337,18 @@ async function normaliseImage(dir, name) {
   );
 
   return { name: finalName, width, height, type: 'image', version: hashOf(join(dir, finalName)) };
+}
+
+/* Riduce alle dimensioni consentite mantenendo le proporzioni. img2 limita la
+   larghezza (i frame in nuvola si guardano a fuoco, e li' conta la larghezza
+   resa); dab limita il lato lungo, perche' una verticale a schermo intero
+   spreca in altezza pixel che non si vedono. */
+function cappedSize({ width, height }, cap) {
+  if (!cap) return { width, height };
+  const measured = cap.mode === 'longSide' ? Math.max(width, height) : width;
+  if (measured <= cap.px) return { width, height };
+  const factor = cap.px / measured;
+  return { width: Math.round(width * factor), height: Math.round(height * factor) };
 }
 
 function freeJpegName(dir, name) {

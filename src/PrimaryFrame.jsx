@@ -85,6 +85,7 @@ export default function PrimaryFrame({
   onIntroComplete,
 }) {
   const viewport = useThree((s) => s.viewport);
+  const gl = useThree((s) => s.gl);
   const [step, setStep] = useState(0);
   // Nulli finche' non parte lo shrink: fino a li' il piano segue la slide.
   const [shrunkWidth, setShrunkWidth] = useState(null);
@@ -103,6 +104,17 @@ export default function PrimaryFrame({
       return texture;
     });
   }, [rawSlides]);
+  /* Una texture viene caricata sulla GPU al primo frame in cui compare, non
+     quando l'immagine finisce di scaricarsi. Con slide da 2600x3467 (36 MB in
+     RGBA, piu' la catena di mipmap) quel caricamento cade esattamente sul
+     cambio di slide — ogni 250 ms — ed e' li' che l'apertura scatta.
+     initTexture lo anticipa tutto in blocco: la spesa si sposta prima che lo
+     slideshow parta, mentre a schermo c'e' ancora l'animazione del titolo, e i
+     passi restano puliti. */
+  useEffect(() => {
+    slideTextures.forEach((texture) => gl.initTexture(texture));
+  }, [gl, slideTextures]);
+
   const currentSlide = Math.min(step, INTRO.slideshow.slideCount - 1);
   const currentTexture = slideTextures[currentSlide];
   const fitted = fitPlaneToViewport(currentTexture, viewport, isMobile);
