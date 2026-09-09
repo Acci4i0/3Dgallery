@@ -47,7 +47,10 @@
         font-weight: 400;
         font-size: 24px;
         line-height: 1;
-        animation: intro-letter-grow-mobile 2000ms forwards;
+        /* La durata qui e' solo un ripiego: quella vera la scrive inline
+           IntroTypography da INTRO.letter.durationMs, perche' decide anche
+           quando parte lo slideshow. */
+        animation: intro-letter-grow-mobile 1100ms forwards;
       }
       /* Su mobile i corpi del bundle (34->69px) con Monoton sborderebbero:
          Monoton è più largo di Purple Haze a parità di corpo. Valori scalati

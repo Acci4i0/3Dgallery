@@ -61,7 +61,13 @@ export default function IntroTypography({ isIntroUnderway, onTypographyComplete 
               <span
                 key={`letter-${index}`}
                 className="intro-letter"
-                style={{ animationDelay: `${letter.delayBaseMs + index * letter.staggerMs}ms` }}
+                style={{
+                  animationDelay: `${letter.delayBaseMs + index * letter.staggerMs}ms`,
+                  // Sovrascrive la durata della shorthand in index.html: la
+                  // fonte e' INTRO.letter.durationMs, che decide anche quando
+                  // parte lo slideshow (animationend dell'ultima lettera).
+                  animationDuration: `${letter.durationMs}ms`,
+                }}
                 onAnimationEnd={index === TITLE.length - 1 ? onTypographyComplete : undefined}
               >
                 {char}

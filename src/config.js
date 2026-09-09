@@ -144,7 +144,16 @@ export const INTRO = {
   // font-weight 300->600 (i valori degli assi proprietari non sono
   // riproducibili senza il font) [bundle].
   letter: {
-    durationMs: 2000,
+    // La durata governa anche QUANDO parte lo slideshow: l'ultima lettera
+    // emette animationend e quello e' il via. L'animazione non ha una
+    // timing-function esplicita, quindi usa `ease`, che verso la fine rallenta
+    // fino a strisciare: con 2000 ms l'ultima lettera restava visivamente ferma
+    // per circa un secondo prima che l'evento scattasse, e quel secondo si
+    // vedeva come schermo nero fermo dietro ad ANDREA. A 1100 ms la fine
+    // dell'animazione cade molto piu' vicino alla fine percepita.
+    // Questo valore e' l'unica fonte: IntroTypography lo scrive inline sulle
+    // lettere, il CSS in index.html non lo fissa piu'.
+    durationMs: 1100,
     delayBaseMs: 1200,
     staggerMs: 200,
     fromSizePx: 64,
