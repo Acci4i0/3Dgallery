@@ -14,6 +14,30 @@
 // [bundle-default]. `flat` = nessun tone mapping [bundle].
 export const CAMERA_POSITION = [0, 0, 10];
 
+/* Su schermo verticale la stessa camera inquadra molto meno.
+   In three.js `fov` e' il campo VERTICALE: la larghezza inquadrata dipende
+   dall'aspect ratio, quindi a parita' di camera un telefono in verticale vede
+   una fetta molto piu' stretta di un desktop.
+
+   Misurato sulle 20 posizioni di gallery-data.js (la nuvola e' larga 28.5
+   unita', da x -13 a +15.5), con la camera a 10 e il target dell'orbita a
+   z -10:
+
+     desktop 1440x900 (aspect 1.60)   semi-larghezza 24.6   20/20 frame in campo
+     mobile   390x844 (aspect 0.46)   semi-larghezza  7.1   10/20 frame in campo
+
+   Meta' nuvola restava fuori: da li' la sensazione di essere "dentro" e di non
+   vedere nessuna nuvola. Arretrando a 20 la semi-larghezza sale a 10.6 e i
+   frame in campo passano da 10 a 16 (a 430x932 e 360x780 il conto e' lo
+   stesso). I frame appaiono al 67% della grandezza che hanno su desktop: e' il
+   prezzo, per vedere piu' cose bisogna mostrarle piu' piccole.
+
+   Si e' scelto di agire SOLO sulla distanza e non sul fov: allargare il fov
+   sarebbe piu' efficiente (a fov 95 si arriva a 20/20) ma cambierebbe anche
+   quanto un frame riempie lo schermo quando va a fuoco, dove FOCUS.approach-
+   FactorTouch e' gia' tarato sul fov 75. */
+export const CAMERA_POSITION_MOBILE = [0, 0, 20];
+
 // <ambientLight intensity={5}> [bundle] (ininfluente sui placeholder unlit,
 // tenuta per fedeltà alla scena).
 export const AMBIENT_LIGHT_INTENSITY = 5;
@@ -24,6 +48,9 @@ export const AMBIENT_LIGHT_INTENSITY = 5;
 export const ORBIT = {
   zoomSpeed: 0.3,
   maxDistance: 30,
+  // Su mobile la camera parte gia' a distanza 30 dal target (z 20 contro
+  // target z -10): col tetto a 30 lo zoom-out nascerebbe inchiodato al limite.
+  maxDistanceMobile: 45,
   minPolarAngle: Math.PI / 4.1,
   maxPolarAngle: Math.PI / 1.1,
   autoRotateSpeed: 0.2,

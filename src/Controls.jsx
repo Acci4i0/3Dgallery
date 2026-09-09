@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { OrbitControls } from '@react-three/drei';
 import { useThree } from '@react-three/fiber';
-import { ORBIT, FOCUS } from './config.js';
+import { CAMERA_POSITION, CAMERA_POSITION_MOBILE, ORBIT, FOCUS } from './config.js';
 import { animateVector } from './animate-vector.js';
 import { restPosition } from './rest-position.js';
 
@@ -40,6 +40,19 @@ export default function Controls({ activeItem, canAutoRotate, isIntroComplete, i
     }
   }, [activeItem, controls, camera, isMobile]);
 
+  /* Rotazione del telefono: isMobile cambia e la distanza giusta cambia con
+     lui. Si riposiziona solo se non c'e' un frame a fuoco, per non strappare
+     via la camera nel mezzo di un volo. Lo zoom eventualmente fatto
+     dall'utente viene riportato alla distanza di partenza: su un cambio di
+     orientamento e' quello che ci si aspetta. */
+  useEffect(() => {
+    if (!controls || activeItem) return;
+    const [, , z] = isMobile ? CAMERA_POSITION_MOBILE : CAMERA_POSITION;
+    if (camera.position.z === z) return;
+    camera.position.set(0, 0, z);
+    controls.update();
+  }, [isMobile, controls, camera, activeItem]);
+
   // Gate dell'intro come nel riferimento: i controls si abilitano quando
   // parte l'auto-rotate (avvio dello shrink), rotate/zoom/pan quando l'intro
   // è completata. Da lì in poi il comportamento è quello preesistente.
@@ -60,7 +73,7 @@ export default function Controls({ activeItem, canAutoRotate, isIntroComplete, i
       enableZoom={isIntroComplete && !activeItem}
       enableRotate={isIntroComplete && !activeItem}
       zoomSpeed={ORBIT.zoomSpeed}
-      maxDistance={ORBIT.maxDistance}
+      maxDistance={isMobile ? ORBIT.maxDistanceMobile : ORBIT.maxDistance}
       minPolarAngle={ORBIT.minPolarAngle}
       maxPolarAngle={ORBIT.maxPolarAngle}
       enableDamping

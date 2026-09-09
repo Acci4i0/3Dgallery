@@ -8,6 +8,7 @@ import {
   AMBIENT_LIGHT_INTENSITY,
   BACKGROUND,
   CAMERA_POSITION,
+  CAMERA_POSITION_MOBILE,
   INTRO,
   MOBILE_MEDIA_QUERY,
 } from './config.js';
@@ -143,7 +144,10 @@ export default function App() {
         if (isIntroComplete) document.body.style.cursor = 'grab';
       }}
     >
-      <Canvas flat camera={{ position: CAMERA_POSITION }}>
+      {/* useMediaQuery si inizializza in modo sincrono, quindi isMobile e' gia'
+          giusto al primo render e la camera nasce alla distanza corretta senza
+          rimontare il Canvas. */}
+      <Canvas flat camera={{ position: isMobile ? CAMERA_POSITION_MOBILE : CAMERA_POSITION }}>
         <ambientLight intensity={AMBIENT_LIGHT_INTENSITY} />
         <Controls
           activeItem={activeItem}
