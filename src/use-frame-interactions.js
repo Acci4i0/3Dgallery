@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { animate } from 'framer-motion';
-import { FRAME_FADE } from './config.js';
+import { FRAME_FADE, PORTFOLIO_ENABLED } from './config.js';
 
 /**
  * Comportamenti comuni a tutti i frame (primario incluso):
@@ -61,7 +61,18 @@ export function useFrameInteractions({
       document.body.style.cursor = 'none';
       setHovered(false);
       if (activeItem) {
-        if (isActive && !isMobile) onPortfolioTransition();
+        if (isActive && !isMobile) {
+          if (PORTFOLIO_ENABLED) {
+            onPortfolioTransition();
+          } else {
+            // Senza portfolio il click sulla foto la chiude. Il cursore va
+            // rimesso prima, come fa onPointerMissed: qui sopra e' stato
+            // messo a 'none' per la x disegnata, e chiudendo sparirebbe
+            // lasciando il puntatore invisibile.
+            document.body.style.cursor = cursorAfterRelease;
+            onDeactivate();
+          }
+        }
       } else {
         onActivate(item);
       }
@@ -69,7 +80,7 @@ export function useFrameInteractions({
     onPointerMove: () => {
       if (!isIntroComplete) return;
       if (activeItem) {
-        if (isActive) onHoverActiveChange(true);
+        if (isActive) onHoverActiveChange(PORTFOLIO_ENABLED);
       } else {
         document.body.style.cursor = 'pointer';
       }

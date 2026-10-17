@@ -119,6 +119,13 @@ export const DETAIL = {
 // sono registrati con un bug (handler inerte), quindi l'effetto non si vede
 // mai sul sito live; qui è implementato funzionante perché l'intento è
 // evidente e l'impatto visivo è un istante.
+// Il portfolio non esiste ancora: PortfolioTransition non naviga da nessuna
+// parte, quindi l'invito "enter portfolio" porterebbe a una stanza vuota.
+// Finche' resta false la pill non compare e un click sulla foto a fuoco la
+// chiude, coerente con la x che il cursore mostra gia'. Rimettere true il
+// giorno in cui il portfolio c'e': non serve toccare altro.
+export const PORTFOLIO_ENABLED = false;
+
 export const CURSOR_ICON = {
   closeSize: 35,
   pillWidth: 202,

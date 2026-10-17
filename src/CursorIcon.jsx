@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CURSOR_ICON } from './config.js';
+import { CURSOR_ICON, PORTFOLIO_ENABLED } from './config.js';
 
 function CloseGlyph() {
   return (
@@ -39,12 +39,16 @@ export default function CursorIcon({
     };
   }, []);
 
+  // Seconda guardia: anche se hoveringActive arrivasse true, senza portfolio
+  // la pill non si mostra.
+  const mostraPill = hoveringActive && PORTFOLIO_ENABLED;
+
   const highlight = activeColors ? activeColors.highlightColor : '#000000';
   const background = activeColors ? activeColors.backgroundColor : '#ffffff';
 
   // Offset dal puntatore: centro del box (17.5, 17.5) / della pill (101, 20).
-  const x = mouseX - (hoveringActive ? CURSOR_ICON.pillWidth / 2 : CURSOR_ICON.closeSize / 2);
-  const y = mouseY - (hoveringActive ? CURSOR_ICON.pillHeight / 2 : CURSOR_ICON.closeSize / 2);
+  const x = mouseX - (mostraPill ? CURSOR_ICON.pillWidth / 2 : CURSOR_ICON.closeSize / 2);
+  const y = mouseY - (mostraPill ? CURSOR_ICON.pillHeight / 2 : CURSOR_ICON.closeSize / 2);
 
   return (
     <AnimatePresence>
@@ -62,7 +66,7 @@ export default function CursorIcon({
           }}
           style={{ position: 'fixed', top: 0, left: 0, zIndex: 2, pointerEvents: 'none' }}
         >
-          {hoveringActive ? (
+          {mostraPill ? (
             <div
               style={{
                 position: 'absolute',
